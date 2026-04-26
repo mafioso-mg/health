@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f5f5f5">
+  <title>极简健康记录</title>
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%E5%81%A5%E5%BA%B7%E8%AE%B0%E5%BD%95%22%2C%22short_name%22%3A%22%E5%81%A5%E5%BA%B7%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f5f5f5%22%2C%22theme_color%22%3A%22%23f5f5f5%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%3E%3Ccircle%20cx%3D'50'%20cy%3D'50'%20r%3D'40'%20fill%3D'%234CAF50'%2F%3E%3Ctext%20x%3D'50'%20y%3D'65'%20font-size%3D'40'%20text-anchor%3D'middle'%20fill%3D'white'%3E%2B%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22100x100%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background: #f5f5f5;
+      color: #1d1d1f;
+      padding: 16px;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    /* 日期头部 */
+    .date-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: white;
+      border-radius: 20px;
+      padding: 12px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .date-header button {
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: #007aff;
+      padding: 5px 8px;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .date-header span {
+      user-select: none;
+    }
+    /* 卡片通用 */
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    }
+    .card-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #333;
+    }
+    /* 打卡按钮 */
+    .punch-row {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+    }
+    .punch-btn {
+      flex: 1;
+      background: #f0f0f5;
+      border: none;
+      border-radius: 20px;
+      padding: 14px 8px;
+      font-size: 16px;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: #555;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .punch-btn:active { transform: scale(0.96); }
+    .punch-btn .emoji { font-size: 28px; }
+    .punch-btn.done {
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-weight: 600;
+    }
+    .punch-btn .time { font-size: 14px; }
+    /* 三餐区域 */
+    .meal-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .meal-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .meal-label {
+      width: 50px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #555;
+    }
+    .meal-actions {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .photo-btn {
+      background: #f0f0f5;
+      border: none;
+      border-radius: 16px;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .photo-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 16px;
+    }
+    .meal-note {
+      flex: 1;
+      border: none;
+      background: #f5f5f7;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 15px;
+      outline: none;
+    }
+    /* 数字指标 */
+    .metrics-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .metric-box {
+      flex: 1 1 30%;
+      background: #f9f9fb;
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .metric-box label {
+      font-size: 13px;
+      color: #888;
+      font-weight: 500;
+    }
+    .weight-input, .exercise-input {
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      font-weight: 600;
+      outline: none;
+      width: 100%;
+      padding: 4px 0;
+      color: #1d1d1f;
+    }
+    .water-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .water-cup-btn {
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .water-cup-btn:active { opacity: 0.8; }
+    .water-value {
+      font-size: 16px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+    .exercise-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .exercise-input {
+      flex: 1;
+    }
+    .summary {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      padding: 8px;
+      background: #f0f0f5;
+      border-radius: 12px;
+      margin-top: 4px;
+    }
+    .hidden-file {
+      display: none;
+    }
+    .small-note {
+      font-size: 12px;
+      color: #aaa;
+      text-align: center;
+    }
+    .today-btn {
+      background: none;
+      color: #007aff;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- 日期切换头部 -->
+  <div class="date-header">
+    <button id="prevDay">←</button>
+    <span id="dateDisplay">今天</span>
+    <button id="nextDay">→</button>
+  </div>
+  <button id="todayBtn" style="background:none; border:none; color:#007aff; font-size:14px; align-self:center;">回到今天</button>
+
+  <!-- 早晚打卡 -->
+  <div class="card">
+    <div class="card-title">☀️ 早晚打卡</div>
+    <div class="punch-row">
+      <button class="punch-btn" id="wakeUpBtn">
+        <span class="emoji">🌅</span> 早起
+        <span class="time" id="wakeUpTime"></span>
+      </button>
+      <button class="punch-btn" id="sleepBtn">
+        <span class="emoji">🌙</span> 睡觉
+        <span class="time" id="sleepTime"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 三餐记录 -->
+  <div class="card">
+    <div class="card-title">🍽️ 三餐记录</div>
+    <div class="meal-grid" id="mealContainer">
+      <!-- 动态生成 -->
+    </div>
+  </div>
+
+  <!-- 体重、饮水、运动 -->
+  <div class="card">
+    <div class="card-title">📊 身体数据</div>
+    <div class="metrics-row">
+      <div class="metric-box">
+        <label>⚖️ 体重 (kg)</label>
+        <input type="number" step="0.1" class="weight-input" id="weightInput" placeholder="0.0">
+      </div>
+      <div class="metric-box">
+        <label>💧 饮水</label>
+        <div class="water-control">
+          <button class="water-cup-btn" id="addWaterBtn">+杯</button>
+          <span class="water-value" id="waterDisplay">0 ml</span>
+        </div>
+      </div>
+      <div class="metric-box">
+        <label>🏃 运动</label>
+        <input type="text" class="exercise-input" id="exerciseInput" placeholder="例如 跑步30分">
+      </div>
+    </div>
+    <div class="summary" id="dailySummary"></div>
+  </div>
+
+  <div class="small-note">数据自动保存 · 向左滑动查看历史</div>
+</div>
+
+<script>
+  (function() {
+    // ---------- 存储 ----------
+    const STORAGE_KEY = 'health_journal_data';
+    let data = {}; // { '2026-04-26': {...} }
+    
+    function loadData() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          data = JSON.parse(stored);
+        } catch(e) { data = {}; }
+      } else {
+        data = {};
+      }
+    }
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+    
+    // 获取某天的数据对象，确保存在
+    function getDayData(dateStr) {
+      if (!data[dateStr]) {
+        data[dateStr] = {
+          wakeUp: null,
+          sleep: null,
+          meals: {
+            breakfast: { photo: null, note: '' },
+            lunch: { photo: null, note: '' },
+            dinner: { photo: null, note: '' }
+          },
+          weight: '',
+          water: 0,
+          exercise: ''
+        };
+      }
+      return data[dateStr];
+    }
+    
+    // ---------- 日期管理 ----------
+    let currentDate = new Date(); // 今天日期对象，可以切换
+    
+    function formatDateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2,'0');
+      const d = String(date.getDate()).padStart(2,'0');
+      return `${y}-${m}-${d}`;
+    }
+    
+    function formatDisplayDate(date) {
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      if (date.toDateString() === today.toDateString()) return '今天';
+      if (date.toDateString() === yesterday.toDateString()) return '昨天';
+      if (date.toDateString() === tomorrow.toDateString()) return '明天';
+      return `${date.getMonth()+1}月${date.getDate()}日`;
+    }
+    
+    function setCurrentDate(date) {
+      currentDate = new Date(date);
+      updateUI();
+    }
+    
+    // ---------- UI渲染 ----------
+    const dateDisplay = document.getElementById('dateDisplay');
+    const wakeUpBtn = document.getElementById('wakeUpBtn');
+    const sleepBtn = document.getElementById('sleepBtn');
+    const wakeUpTimeSpan = document.getElementById('wakeUpTime');
+    const sleepTimeSpan = document.getElementById('sleepTime');
+    const mealContainer = document.getElementById('mealContainer');
+    const weightInput = document.getElementById('weightInput');
+    const waterDisplay = document.getElementById('waterDisplay');
+    const exerciseInput = document.getElementById('exerciseInput');
+    const dailySummary = document.getElementById('dailySummary');
+    
+    function updateUI() {
+      const dateKey = formatDateKey(currentDate);
+      const dayData = getDayData(dateKey);
+      
+      dateDisplay.textContent = formatDisplayDate(currentDate);
+      
+      // 打卡按钮状态
+      function renderPunch(btn, timeSpan, value, isWakeUp) {
+        if (value) {
+          btn.classList.add('done');
+          timeSpan.textContent = value;
+        } else {
+          btn.classList.remove('done');
+          timeSpan.textContent = '';
+        }
+      }
+      renderPunch(wakeUpBtn, wakeUpTimeSpan, dayData.wakeUp, true);
+      renderPunch(sleepBtn, sleepTimeSpan, dayData.sleep, false);
+      
+      // 三餐
+      const meals = ['breakfast', 'lunch', 'dinner'];
+      const mealNames = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' };
+      mealContainer.innerHTML = '';
+      meals.forEach(type => {
+        const meal = dayData.meals[type];
+        const div = document.createElement('div');
+        div.className = 'meal-item';
+        div.innerHTML = `
+          <span class="meal-label">${mealNames[type]}</span>
+          <div class="meal-actions">
+            <button class="photo-btn meal-photo-btn" data-meal="${type}">
+              ${meal.photo ? `<img src="${meal.photo}" alt="餐图">` : '📷'}
+            </button>
+            <input type="text" class="meal-note" placeholder="记录吃了什么" value="${escapeHtml(meal.note || '')}" data-meal="${type}">
+          </div>
+        `;
+        mealContainer.appendChild(div);
+      });
+      
+      // 体重
+      weightInput.value = dayData.weight !== '' ? dayData.weight : '';
+      // 饮水显示
+      const waterMl = dayData.water || 0;
+      waterDisplay.textContent = waterMl + ' ml';
+      // 运动
+      exerciseInput.value = dayData.exercise || '';
+      
+      // 小结
+      let summaryParts = [];
+      if (dayData.wakeUp) summaryParts.push(`早起 ${dayData.wakeUp}`);
+      if (dayData.sleep) summaryParts.push(`睡觉 ${dayData.sleep}`);
+      if (waterMl > 0) summaryParts.push(`饮水 ${waterMl}ml`);
+      if (dayData.weight) summaryParts.push(`体重 ${dayData.weight}kg`);
+      if (dayData.exercise) summaryParts.push(`运动: ${dayData.exercise}`);
+      dailySummary.textContent = summaryParts.length ? summaryParts.join(' · ') : '今天还没有记录';
+      
+      // 绑定三餐事件
+      document.querySelectorAll('.meal-photo-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const mealType = btn.dataset.meal;
+          triggerPhotoUpload(mealType);
+        });
+      });
+      document.querySelectorAll('.meal-note').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const mealType = e.target.dataset.meal;
+          const note = e.target.value;
+          dayData.meals[mealType].note = note;
+          saveData();
+        });
+      });
+    }
+    
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        return m;
+      });
+    }
+    
+    // 拍照处理
+    function triggerPhotoUpload(mealType) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment'; // 优先后置摄像头
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dateKey = formatDateKey(currentDate);
+          const dayData = getDayData(dateKey);
+          dayData.meals[mealType].photo = event.target.result;
+          saveData();
+          updateUI();
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    }
+    
+    // 打卡逻辑
+    function punch(type) {
+      const dateKey = formatDateKey(currentDate);
+      const dayData = getDayData(dateKey);
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      
+      if (type === 'wakeUp') {
+        if (dayData.wakeUp) {
+          // 撤销打卡
+          dayData.wakeUp = null;
+        } else {
+          dayData.wakeUp = timeStr;
+        }
+      } else if (type === 'sleep') {
+        if (dayData.sleep) {
+          dayData.sleep = null;
+        } else {
+          dayData.sleep = timeStr;
+        }
+      }
+      saveData();
+      updateUI();
+    }
+    
+    // 体重输入
+    weightInput.addEventListener('input', (e) => {
+      const dateKey = formatDateKey(currentDate);
+      const dayData = getDayData(dateKey);
+      dayData.weight = e.target.value;
+      saveData();
+      updateSummaryOnly();
+    });
+    
+    // 饮水加杯
+    document.getElementById('addWaterBtn').addEventListener('click', () => {
+      const dateKey = formatDateKey(currentDate);
+      const dayData = getDayData(dateKey);
+      dayData.water = (dayData.water || 0) + 300;
+      saveData();
+      updateUI();
+    });
+    
+    // 运动输入
+    exerciseInput.addEventListener('input', (e) => {
+      const dateKey = formatDateKey(currentDate);
+      const dayData = getDayData(dateKey);
+      dayData.exercise = e.target.value;
+      saveData();
+      updateSummaryOnly();
+    });
+    
+    function updateSummaryOnly() {
+      const dateKey = formatDateKey(currentDate);
+      const dayData = getDayData(dateKey);
+      let summaryParts = [];
+      if (dayData.wakeUp) summaryParts.push(`早起 ${dayData.wakeUp}`);
+      if (dayData.sleep) summaryParts.push(`睡觉 ${dayData.sleep}`);
+      if (dayData.water > 0) summaryParts.push(`饮水 ${dayData.water}ml`);
+      if (dayData.weight) summaryParts.push(`体重 ${dayData.weight}kg`);
+      if (dayData.exercise) summaryParts.push(`运动: ${dayData.exercise}`);
+      dailySummary.textContent = summaryParts.length ? summaryParts.join(' · ') : '今天还没有记录';
+    }
+    
+    // 日期导航
+    document.getElementById('prevDay').addEventListener('click', () => {
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() - 1);
+      setCurrentDate(newDate);
+    });
+    document.getElementById('nextDay').addEventListener('click', () => {
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() + 1);
+      setCurrentDate(newDate);
+    });
+    document.getElementById('todayBtn').addEventListener('click', () => {
+      setCurrentDate(new Date());
+    });
+    
+    // 打卡按钮事件
+    wakeUpBtn.addEventListener('click', () => punch('wakeUp'));
+    sleepBtn.addEventListener('click', () => punch('sleep'));
+    
+    // 初始化
+    loadData();
+    setCurrentDate(new Date());
+    
+    // ---------- PWA Service Worker 注册 ----------
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          const CACHE_NAME = 'health-pwa-v1';
+          const urlsToCache = ['/'];
+          self.addEventListener('install', event => {
+            event.waitUntil(
+              caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+            );
+          });
+          self.addEventListener('fetch', event => {
+            event.respondWith(
+              caches.match(event.request).then(response => response || fetch(event.request))
+            );
+          });
+        `;
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl).catch(() => {});
+      });
+    }
+  })();
+</script>
+</body>
+</html>
